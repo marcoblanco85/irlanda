@@ -2,8 +2,8 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Irlanda - Noche Serena</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Irlanda - Noche Serena Móvil</title>
     <style>
         body {
             margin: 0;
@@ -12,56 +12,73 @@
             justify-content: center;
             align-items: center;
             height: 100vh;
+            width: 100vw;
             overflow: hidden;
+            touch-action: none; /* Evita scrolls accidentales en móviles */
         }
         canvas {
-            box-shadow: 0 0 60px rgba(0, 255, 255, 0.1);
-            border-radius: 4px;
+            display: block;
         }
     </style>
 </head>
 <body>
 
-    <canvas id="miLienzo" width="800" height="600"></canvas>
+    <canvas id="miLienzo"></canvas>
 
     <script>
         const canvas = document.getElementById('miLienzo');
         const ctx = canvas.getContext('2d');
 
-        // Configuración de Estrellas (Posiciones fijas para que no parpadeen caóticamente)
+        let ancho, alto;
         const estrellas = [];
-        for (let i = 0; i < 150; i++) {
-            estrellas.push({
-                x: Math.random() * canvas.width,
-                y: Math.random() * 450,
-                tam: Math.random() * 1.5,
-                opacidad: Math.random()
-            });
+        const flores = [];
+
+        function ajustarTamano() {
+            ancho = window.innerWidth;
+            alto = window.innerHeight;
+            canvas.width = ancho;
+            canvas.height = alto;
+
+            // Reiniciar elementos para el nuevo tamaño
+            inicializarEscena();
         }
 
-        // Configuración de Flores
-        const flores = [];
-        const numFlores = 35;
-        for (let i = 0; i < numFlores; i++) {
-            flores.push({
-                x: Math.random() * canvas.width,
-                y: 490 + Math.random() * 90,
-                escala: 1.2 + Math.random() * 0.8, 
-                fase: Math.random() * Math.PI * 2,
-                // Velocidad mucho más lenta (0.005 a 0.01)
-                velocidad: 0.005 + Math.random() * 0.008 
-            });
+        function inicializarEscena() {
+            // Estrellas
+            estrellas.length = 0;
+            const numEstrellas = Math.floor((ancho * alto) / 3000); 
+            for (let i = 0; i < numEstrellas; i++) {
+                estrellas.push({
+                    x: Math.random() * ancho,
+                    y: Math.random() * (alto * 0.7),
+                    tam: Math.random() * 1.2,
+                    opacidad: Math.random()
+                });
+            }
+
+            // Flores
+            flores.length = 0;
+            const numFlores = Math.floor(ancho / 25); // Densidad basada en ancho
+            for (let i = 0; i < numFlores; i++) {
+                flores.push({
+                    x: Math.random() * ancho,
+                    y: (alto * 0.85) + Math.random() * (alto * 0.15),
+                    escala: (ancho < 500 ? 0.8 : 1.2) + Math.random() * 0.5, 
+                    fase: Math.random() * Math.PI * 2,
+                    velocidad: 0.005 + Math.random() * 0.008 
+                });
+            }
         }
 
         function dibujar(tiempo) {
             // 1. CIELO DEGRADADO
-            const cielo = ctx.createLinearGradient(0, 0, 0, 450);
+            const cielo = ctx.createLinearGradient(0, 0, 0, alto * 0.7);
             cielo.addColorStop(0, "#000308");
             cielo.addColorStop(1, "#081221");
             ctx.fillStyle = cielo;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillRect(0, 0, ancho, alto);
 
-            // 2. ESTRELLAS ACOMODADAS
+            // 2. ESTRELLAS
             estrellas.forEach(e => {
                 ctx.fillStyle = `rgba(255, 255, 255, ${e.opacidad})`;
                 ctx.beginPath();
@@ -69,70 +86,64 @@
                 ctx.fill();
             });
 
-            // 3. LUNA
+            // 3. LUNA (Posición y tamaño relativo)
+            const radioLuna = ancho < 500 ? 30 : 45;
             ctx.save();
-            ctx.shadowBlur = 40;
+            ctx.shadowBlur = 30;
             ctx.shadowColor = "rgba(255, 255, 255, 0.3)";
             ctx.beginPath();
-            ctx.arc(650, 90, 45, 0, Math.PI * 2);
+            ctx.arc(ancho * 0.8, alto * 0.15, radioLuna, 0, Math.PI * 2);
             ctx.fillStyle = "#fefce8";
             ctx.fill();
             ctx.restore();
 
-            // 4. TEXTO
+            // 4. TEXTO (Tamaño dinámico)
+            const fontSize = Math.min(ancho * 0.12, 80);
             ctx.fillStyle = "white";
-            ctx.font = "lighter 85px 'Segoe UI'";
+            ctx.font = `lighter ${fontSize}px 'Segoe UI', sans-serif`;
             ctx.textAlign = "center";
-            ctx.letterSpacing = "20px";
-            ctx.fillText("IRLANDA", canvas.width / 2, 160);
+            ctx.letterSpacing = ancho < 500 ? "10px" : "20px";
+            ctx.fillText("IRLANDA", ancho / 2, alto * 0.3);
 
-            // 5. PRADO VERDE OSCURO
+            // 5. PRADO
             ctx.beginPath();
-            ctx.moveTo(0, 460);
-            ctx.quadraticCurveTo(canvas.width / 2, 420, canvas.width, 490);
-            ctx.lineTo(canvas.width, 600);
-            ctx.lineTo(0, 600);
+            ctx.moveTo(0, alto * 0.8);
+            ctx.quadraticCurveTo(ancho / 2, alto * 0.75, ancho, alto * 0.82);
+            ctx.lineTo(ancho, alto);
+            ctx.lineTo(0, alto);
             ctx.fillStyle = "#051204";
             ctx.fill();
 
-            // 6. JARDÍN ANIMADO (MOVIMIENTO LENTO)
+            // 6. FLORES
             flores.sort((a, b) => a.y - b.y);
-            
             flores.forEach(f => {
-                // Movimiento lateral reducido para simular brisa suave
-                const oscilacion = Math.sin(tiempo * f.velocidad + f.fase) * 10;
+                const oscilacion = Math.sin(tiempo * f.velocidad + f.fase) * (ancho < 500 ? 5 : 10);
                 const florX = f.x + oscilacion;
-                const florY = f.y - (45 * f.escala);
+                const florY = f.y - (35 * f.escala);
                 
-                // Tallo curvo
+                // Tallo
                 ctx.strokeStyle = "#122b1e";
-                ctx.lineWidth = 3 * f.escala;
+                ctx.lineWidth = 2 * f.escala;
                 ctx.beginPath();
                 ctx.moveTo(f.x, f.y);
-                ctx.quadraticCurveTo(f.x + oscilacion * 0.5, f.y - 20, florX, florY);
+                ctx.quadraticCurveTo(f.x + oscilacion * 0.5, f.y - 15, florX, florY);
                 ctx.stroke();
 
-                // Pétalos Turquesas
+                // Pétalos
                 ctx.fillStyle = "#40E0D0";
                 for (let i = 0; i < 6; i++) {
                     ctx.save();
                     ctx.translate(florX, florY);
-                    ctx.rotate((i * Math.PI * 2) / 6 + (oscilacion * 0.01));
+                    ctx.rotate((i * Math.PI * 2) / 6 + (oscilacion * 0.02));
                     ctx.beginPath();
-                    ctx.ellipse(0, -9 * f.escala, 5 * f.escala, 14 * f.escala, 0, 0, Math.PI * 2);
-                    ctx.fill();
-                    // Brillo en el pétalo
-                    ctx.fillStyle = "rgba(175, 238, 238, 0.6)";
-                    ctx.beginPath();
-                    ctx.ellipse(0, -10 * f.escala, 2 * f.escala, 7 * f.escala, 0, 0, Math.PI * 2);
+                    ctx.ellipse(0, -7 * f.escala, 4 * f.escala, 11 * f.escala, 0, 0, Math.PI * 2);
                     ctx.fill();
                     ctx.restore();
-                    ctx.fillStyle = "#40E0D0";
                 }
 
-                // Centro de la flor
+                // Centro
                 ctx.beginPath();
-                ctx.arc(florX, florY, 4 * f.escala, 0, Math.PI * 2);
+                ctx.arc(florX, florY, 3 * f.escala, 0, Math.PI * 2);
                 ctx.fillStyle = "#008b8b";
                 ctx.fill();
             });
@@ -140,6 +151,9 @@
             requestAnimationFrame(dibujar);
         }
 
+        // Eventos y arranque
+        window.addEventListener('resize', ajustarTamano);
+        ajustarTamano();
         requestAnimationFrame(dibujar);
     </script>
 </body>
